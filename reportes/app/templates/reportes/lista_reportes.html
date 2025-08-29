@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reportes de Incidencias</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-6 text-indigo-700">📋 Reportes de Incidencias</h2>
+
+        <form method="GET" action="/listaReportes" class="mb-6 flex flex-wrap gap-4 items-center">
+          <select name="estatus" class="px-3 py-2 border rounded text-sm">
+              <option value="">Todos los estatus</option>
+              <option value="Abierto">Abierto</option>
+              <option value="Cerrado">Cerrado</option>
+              <option value="En Seguimiento">En Seguimiento</option>
+          </select>
+
+          <select name="tipo" class="px-3 py-2 border rounded text-sm">
+              <option value="">Todos los tipos</option>
+              {% for tipo in tipos %}
+              <option value="{{ tipo.nombre }}">{{ tipo.nombre }}</option>
+              {% endfor %}
+          </select>
+
+          <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700">
+              Filtrar
+          </button>
+      </form>
+
+        {% if reportes %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-indigo-100">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-sm font-semibold text-indigo-700">Folio</th>
+                            <th class="px-4 py-2 text-left text-sm font-semibold text-indigo-700">Alumno</th>
+                            <th class="px-4 py-2 text-left text-sm font-semibold text-indigo-700">Tipo</th>
+                            <th class="px-4 py-2 text-left text-sm font-semibold text-indigo-700">Fecha</th>
+                            <th class="px-4 py-2 text-left text-sm font-semibold text-indigo-700">Estatus</th>
+                            <th class="px-4 py-2 text-left text-sm font-semibold text-indigo-700">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for r in reportes %}
+                        <tr>
+                            <td class="px-4 py-2 text-sm text-gray-700 font-medium">{{ r.folio }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ r.alumno_nombre }} {{ r.apellido_paterno }} {{ r.apellido_materno }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ r.tipo_reporte }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-600">{{ r.fecha_incidencia.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td class="px-4 py-2 text-sm font-semibold {% if r.estatus == 'Resuelto' %}text-green-600{% elif r.estatus == 'Pendiente' %}text-yellow-600{% else %}text-blue-600{% endif %}">
+                                {{ r.estatus }}
+                            </td>
+                            <td class="px-4 py-2 text-sm">
+                                  <a href="{{ url_for('report_bp.ver_reporte', folio=r.folio) }}"
+                                    class="text-indigo-600 hover:underline text-sm">Ver detalles</a>
+                              </td>
+
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-gray-500">No hay reportes registrados aún.</p>
+        {% endif %}
+        <a href="{{ url_for('report_bp.exportar_pdf') }}"
+          class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
+          📥 Exportar PDF
+        </a>
+
+    </div>
+    
+</body>
+</html>

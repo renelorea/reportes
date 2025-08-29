@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuevo Reporte</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4 text-indigo-700">📄 Crear Nuevo Reporte</h2>
+        <form method="POST">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Folio</label>
+                <input type="text" value="{{ folio }}" readonly class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-600">
+                <input type="hidden" name="folio" value="{{ folio }}">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Grupos</label>
+                <select name="id_grupo" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                    <option value="">Selecciona un grupo</option>
+                    {% for grupo in grupos %}
+                        <option value="{{ grupo.id_grupo }}">{{ grupo.id_grupo }} {{ grupo.Descripcion }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Alumno</label>
+                <select name="id_alumno" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                    <option value="">Selecciona un alumno</option>
+                    {% for alumno in alumnos %}
+                        <option value="{{ alumno.id_alumno }}">{{ alumno.id_alumno }} {{ alumno.nombres }} {{ alumno.apellido_paterno }} {{ alumno.apellido_materno }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Tipo de Reporte</label>
+                <select name="id_tipo" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                    <option value="">Selecciona un tipo</option>
+                    {% for tipo in tipos %}
+                        <option value="{{ tipo.id_tipo_reporte }}">{{ tipo.id_tipo_reporte }} {{ tipo.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Descripción de los Hechos</label>
+                <textarea name="descripcion" rows="4" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Acciones Tomadas</label>
+                <textarea name="acciones" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Fecha de Incidencia</label>
+                <input type="datetime-local" name="fecha" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700">Estatus</label>
+                <select name="estatus" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                    <option>Abierto</option>
+                    <option>En Seguimiento</option>
+                    <option>Cerrado</option>
+                </select>
+            </div>
+
+            <!-- ID del usuario que reporta (puede venir del login) -->
+            <input type="hidden" name="id_usuario" value="{{ session['id'] }}">
+
+            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">Guardar Reporte</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<h2>Nuevo Reporte de Incidencia</h2>
+<form method="POST">
+  Folio: <input type="text" name="folio"><br>
+  ID Alumno: <input type="number" name="id_alumno"><br>
+  ID Usuario que Reporta: <input type="number" name="id_usuario"><br>
+  Tipo de Reporte (ID): <input type="number" name="id_tipo"><br>
+  Descripción de los Hechos:<br>
+  <textarea name="descripcion"></textarea><br>
+  Acciones Tomadas:<br>
+  <textarea name="acciones"></textarea><br>
+  Fecha de Incidencia: <input type="datetime-local" name="fecha"><br>
+  Estatus: 
+  <select name="estatus">
+    <option>Pendiente</option>
+    <option>En Seguimiento</option>
+    <option>Resuelto</option>
+  </select><br>
+  <button type="submit">Registrar Reporte</button>
+</form>

@@ -1,0 +1,156 @@
+-- ====================================================================================
+-- Script para la creación de la Base de Datos de Reportes de Incidencias Escolares
+-- Diseñado por: Gemini (Actuando como Ingeniero de Software experto en BBDD)
+-- Versión: 1.1
+-- Motor: MySQL
+-- ====================================================================================
+
+-- Se recomienda ejecutar este script en un entorno de desarrollo limpio.
+
+-- 1. CREACIÓN DE LA BASE DE DATOS
+-- ------------------------------------------------------------------------------------
+-- Se elimina la base de datos si existe para una instalación limpia.
+DROP DATABASE IF EXISTS `incidencias`;
+CREATE DATABASE IF NOT EXISTS `incidencias` 
+    CHARACTER SET utf8mb4 
+    COLLATE utf8mb4_unicode_ci;
+
+USE `incidencias`;
+
+
+-- 2. TABLA DE USUARIOS (Personal de la escuela)
+-- ------------------------------------------------------------------------------------
+-- Unifica a profesores y administrativos. El rol define su función y permisos.
+-- Esto simplifica el sistema, ya que cualquier usuario puede generar un reporte.
+-- ------------------------------------------------------------------------------------
+CREATE TABLE `usuarios` (
+    `id_usuario` INT AUTO_INCREMENT PRIMARY KEY,
+    `nombres` VARCHAR(100) NOT NULL,
+    `apellido_paterno` VARCHAR(100) NOT NULL,
+    `apellido_materno` VARCHAR(100),
+    `email` VARCHAR(255) NOT NULL UNIQUE COMMENT 'Servirá como nombre de usuario para el login',
+    `rol` ENUM('Profesor', 'Administrativo', 'Director', 'Psicologia') NOT NULL COMMENT 'Define los permisos y tipo de usuario',
+    `contrasena` VARCHAR(255) NOT NULL COMMENT 'IMPORTANTE: Guardar siempre en formato hash (ej. bcrypt)',
+    `activo` BOOLEAN DEFAULT TRUE COMMENT 'Para dar de baja a usuarios sin borrarlos (baja lógica)'
+) ENGINE=InnoDB;
+
+
+-- 3. TABLA DE GRUPOS
+-- ------------------------------------------------------------------------------------
+-- Define los grupos, salones o clases de la escuela.
+-- Se relaciona con un tutor, que es un usuario con rol de 'Profesor'.
+-- ------------------------------------------------------------------------------------
+CREATE TABLE `grupos` (
+    `id_grupo` INT AUTO_INCREMENT PRIMARY KEY,
+    `grado` SMALLINT NOT NULL COMMENT 'Ej: 1, 2, 3',
+    `letra` CHAR(2) NOT NULL COMMENT 'Ej: A, B, C',
+    `ciclo_escolar` VARCHAR(10) NOT NULL COMMENT 'Ej: 2024-2025',
+    `id_tutor` INT,
+    CONSTRAINT `fk_tutor_grupo`
+        FOREIGN KEY (`id_tutor`) REFERENCES `usuarios`(`id_usuario`) 
+        ON DELETE SET NULL -- Si el tutor es eliminado, el grupo no se queda sin registro, solo sin tutor.
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+
+-- 4. TABLA DE ALUMNOS
+-- ------------------------------------------------------------------------------------
+-- Almacena la información de los estudiantes.
+-- Cada alumno está asignado a un único grupo por ciclo escolar.
+-- ------------------------------------------------------------------------------------
+CREATE TABLE `alumnos` (
+    `id_alumno` INT AUTO_INCREMENT PRIMARY KEY,
+    `matricula` VARCHAR(20) NOT NULL UNIQUE COMMENT 'Identificador único del alumno',
+    `nombres` VARCHAR(100) NOT NULL,
+    `apellido_paterno` VARCHAR(100) NOT NULL,
+    `apellido_materno` VARCHAR(100),
+    `fecha_nacimiento` DATE,
+    `id_grupo` INT NOT NULL,
+    CONSTRAINT `fk_grupo_alumno`
+        FOREIGN KEY (`id_grupo`) REFERENCES `grupos`(`id_grupo`) 
+        ON DELETE RESTRICT -- No se puede borrar un grupo si tiene alumnos inscritos.
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+
+-- 5. CATÁLOGO DE TIPOS DE REPORTE
+-- ------------------------------------------------------------------------------------
+-- Permite clasificar las incidencias de forma estandarizada.
+-- Facilita la generación de estadísticas y la toma de decisiones.
+-- ------------------------------------------------------------------------------------
+CREATE TABLE `tipos_reporte` (
+    `id_tipo_reporte` INT AUTO_INCREMENT PRIMARY KEY,
+    `nombre` VARCHAR(100) NOT NULL UNIQUE,
+    `descripcion` TEXT,
+    `gravedad` ENUM('Leve', 'Moderada', 'Grave') NOT NULL DEFAULT 'Leve'
+) ENGINE=InnoDB;
+
+
+-- 6. TABLA PRINCIPAL DE REPORTES DE INCIDENCIAS
+-- ------------------------------------------------------------------------------------
+-- Es la tabla transaccional que une toda la información.
+-- Guarda el detalle de cada incidencia ocurrida.
+-- ------------------------------------------------------------------------------------
+CREATE TABLE `reportes_incidencias` (
+    `id_reporte` INT AUTO_INCREMENT PRIMARY KEY,
+    `folio` VARCHAR(20) NOT NULL UNIQUE COMMENT 'Folio autogenerado por la aplicación, ej: REP-2025-0001',
+    `id_alumno` INT NOT NULL COMMENT 'El alumno que protagoniza la incidencia',
+    `id_usuario_que_reporta` INT NOT NULL COMMENT 'El profesor o administrativo que crea el reporte',
+    `id_tipo_reporte` INT NOT NULL,
+    `descripcion_hechos` TEXT NOT NULL COMMENT 'Narrativa detallada de lo sucedido',
+    `acciones_tomadas` TEXT COMMENT 'Qué acciones se realizaron al momento o posteriormente',
+    `fecha_incidencia` DATETIME NOT NULL COMMENT 'Cuándo ocurrió el evento exactamente',
+    `fecha_creacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Cuándo se registró en el sistema (autogenerado)',
+    `estatus` ENUM('Abierto', 'En Seguimiento', 'Cerrado') NOT NULL DEFAULT 'Abierto',
+    
+    -- Definición de llaves foráneas
+    CONSTRAINT `fk_alumno_reporte`
+        FOREIGN KEY (`id_alumno`) REFERENCES `alumnos`(`id_alumno`) 
+        ON DELETE CASCADE, -- Si se borra un alumno, se borra su historial de reportes.
+    CONSTRAINT `fk_usuario_reporte`
+        FOREIGN KEY (`id_usuario_que_reporta`) REFERENCES `usuarios`(`id_usuario`) 
+        ON DELETE RESTRICT, -- No se puede borrar un usuario si ha generado reportes.
+    CONSTRAINT `fk_tipo_reporte`
+        FOREIGN KEY (`id_tipo_reporte`) REFERENCES `tipos_reporte`(`id_tipo_reporte`) 
+        ON DELETE RESTRICT -- No se puede borrar un tipo de reporte si está en uso.
+) ENGINE=InnoDB;
+
+
+-- 7. DATOS DE EJEMPLO PARA PRUEBAS
+-- ------------------------------------------------------------------------------------
+INSERT INTO `usuarios` (`nombres`, `apellido_paterno`, `apellido_materno`, `email`, `rol`, `contrasena`) VALUES
+('Carlos', 'Sánchez', 'Ruiz', 'carlos.sanchez@escuela.edu', 'Profesor', '$2y$10$examplehashvalue...'),
+('Laura', 'Gómez', 'Paredes', 'laura.gomez@escuela.edu', 'Administrativo', '$2y$10$examplehashvalue...'),
+('Ana', 'Martínez', 'Lara', 'ana.martinez@escuela.edu', 'Director', '$2y$10$examplehashvalue...');
+
+INSERT INTO `grupos` (`grado`, `letra`, `ciclo_escolar`, `id_tutor`) VALUES
+(3, 'A', '2024-2025', 1),
+(3, 'B', '2024-2025', NULL);
+
+INSERT INTO `alumnos` (`matricula`, `nombres`, `apellido_paterno`, `apellido_materno`, `id_grupo`) VALUES
+('A012345', 'Juan', 'Pérez', 'García', 1),
+('A012346', 'Sofía', 'López', 'Mora', 1);
+
+INSERT INTO `tipos_reporte` (`nombre`, `descripcion`, `gravedad`) VALUES
+('Conducta Inapropiada', 'Comportamiento que interrumpe el orden de la clase o falta al reglamento.', 'Moderada'),
+('Falta de Material', 'El alumno no cuenta con los materiales necesarios para la clase de forma reiterada.', 'Leve'),
+('Agresión Física/Verbal', 'Contacto físico o verbal intencional y dañino hacia un compañero o personal.', 'Grave'),
+('Rendimiento Académico Bajo', 'Dificultades notorias en el aprendizaje o entrega de trabajos.', 'Moderada');
+
+INSERT INTO `reportes_incidencias` (`folio`, `id_alumno`, `id_usuario_que_reporta`, `id_tipo_reporte`, `descripcion_hechos`, `acciones_tomadas`, `fecha_incidencia`, `estatus`) VALUES
+('REP-2025-0001', 1, 1, 1, 'Durante la clase de matemáticas, el alumno Juan Pérez interrumpió constantemente al profesor y a sus compañeros, haciendo ruidos y sin atender a las indicaciones.', 'Se le llamó la atención verbalmente y se le cambió de lugar. Se notificará a sus padres.', '2025-08-21 10:30:00', 'En Seguimiento');
+
+ALTER TABLE grupos
+ADD `Descripcion` VARCHAR(3) DEFAULT NULL;
+
+ALTER TABLE grupos
+DROP `letra`;
+
+select * from grupos;
+
+update grupos set Descripcion='201' where id_grupo=1;
+update grupos set Descripcion='202' where id_grupo=2;
+
+
+-- FIN DEL SCRIPT
+-- ====================================================================================
